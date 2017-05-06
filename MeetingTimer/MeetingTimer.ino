@@ -6,11 +6,13 @@
 
 // Define I/O pins based on hardware configuration
 #define RED_PIN 3
-#define GREEN_PIN 10
-#define BLUE_PIN 11
+#define GREEN_PIN 11
+#define BLUE_PIN 10
 #define BOARD_LED 13
 
-#define START_DELAY 1000
+// #define INVERT_DUTY_CYCLE
+
+#define START_DELAY 500
 #define SECOND_DELAY 1000
 
 // These 3 are the PWM pin supported on the Arduino Nano
@@ -31,7 +33,7 @@ void setup() {
     delay(START_DELAY);
     LEDWrite(0, 0, 255); // B
     delay(START_DELAY);
-    LEDWrite(0, 255, 255); // Y
+    LEDWrite(64, 255, 0); // Y
     delay(START_DELAY);
     LEDWrite(255, 0, 0); // R
     delay(START_DELAY);
@@ -63,7 +65,7 @@ void loop() {
         }
         else if (secondsCounter > threeQuarterWay) // 3/4 done
         {
-            LEDWrite(255, 255, 0); // Yellow
+            LEDWrite(64, 255, 0); // Yellow
         }
         else if (secondsCounter > halfWay) // 1/2 done
         {
@@ -101,11 +103,19 @@ void loop() {
 // R,G,B are expected to be UINT8 format, and the scale factors are U1.6 formatted such that 0x80 is full scale
 void LEDWrite(int R, int G, int B)
 {
-    R = 255 - R;
-    G = 255 - G;
-    B = 255 - B;
-    const int RScale = 0x60; // 75% intensity
-    const int GScale = 0x20; // 25% intensity
+
+
+    
+    
+    
+    analogWrite(RED_PIN, R);
+    analogWrite(GREEN_PIN, G);
+    analogWrite(BLUE_PIN, B);
+    
+
+    
+    const int RScale = 0x80; // 75% intensity
+    const int GScale = 0x80; // 25% * .75 intensity
     const int BScale = 0x80; // 100% intensity
     const int ScaleOffset = 7; // Decimal point is between bits 6 and 7
 
@@ -114,10 +124,30 @@ void LEDWrite(int R, int G, int B)
     int Green = G * GScale;
     int Blue = B * BScale;
 
-    // Take the amount of RGB, shift it by the scale offset to effectively scale by the numbers above
-    analogWrite(RED_PIN, (Red >> ScaleOffset));
-    analogWrite(GREEN_PIN, (Green >> ScaleOffset));
-    analogWrite(BLUE_PIN, (Blue >> ScaleOffset));
+
+    
+    #ifdef INVERT_DUTY_CYCLE
+        // Take the amount of RGB, shift it by the scale offset to effectively scale by the numbers above
+        // The 255- is due to the PWM dutcy cycle is actually the "off" duty cycle
+        // This offset is required due to the common anode LED
+        Red = 255 - (Red >> ScaleOffset);
+        Green = 255 - (Green >> ScaleOffset);
+        Blue = 255 - (Blue >> ScaleOffset);
+    #endif // INVERT_DUTY_CYCLE
+
+    #ifndef INVERT_DUTY_CYCLE
+        // Take the amount of RGB, shift it by the scale offset to effectively scale by the numbers above
+        // The 255- is due to the PWM dutcy cycle is actually the "off" duty cycle
+        // This offset is required due to the common anode LED
+        Red = (Red >> ScaleOffset);
+        Green = (Green >> ScaleOffset);
+        Blue = (Blue >> ScaleOffset);
+    #endif // !INVERT_DUTY_CYCLE
+
+
+    analogWrite(RED_PIN, Red);
+    analogWrite(GREEN_PIN, Green);
+    analogWrite(BLUE_PIN, Blue);
 
     /*
     RGBDebug((Red >> ScaleOffset), (Green >> ScaleOffset), (Blue >> ScaleOffset));
